@@ -12,6 +12,10 @@
     "email": "bastian.krol@web.de"
   },
   "license": "MIT",
+  "dependencies": {
+    "moment": "^2.10.2",
+    "workwork": "basti1302/workwork#0.1.0-multiple-locales"
+  },
   "devDependencies": {
     "tape": "^4.0.0"
   }
