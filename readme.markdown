@@ -29,13 +29,6 @@ workingHoursYearFraction: working hours until today divided by working hours in 
 workingHoursYearFraction(date) = workingHours(date) / workingHours(31.12.)
 workingDaysYearFraction(date) = workingHoursYearFraction(date) * hoursPerDay
 
-### Libraries
-
-https://github.com/wombleton/workwork <- does it check leap years?
-https://github.com/wombleton/liberty
--> Add iCalender recurrence rules for German holidays:
-https://github.com/alexdunae/holidays/blob/master/data/de.yaml
-
 ## Vacation
 
 vacationDaysTotal: the number of days available for vacation
