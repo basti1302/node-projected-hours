@@ -1,89 +1,89 @@
 'use strict';
 
 var test = require('tape');
-var Calculation = require('..');
+var Hours = require('..');
 
 test('default values', function (t) {
-  var calc = new Calculation();
-  t.equal(calc.getHoursWorked(), 0);
-  t.equal(calc.getHoursPerWeek(), 40);
-  t.equal(calc.daysPerWeek, 5);
-  t.equal(calc.getHoursPerDay(), 8);
+  var hours = new Hours();
+  t.equal(hours.getHoursWorked(), 0);
+  t.equal(hours.getHoursPerWeek(), 40);
+  t.equal(hours.daysPerWeek, 5);
+  t.equal(hours.getHoursPerDay(), 8);
   t.end();
 });
 
 test('non default values', function (t) {
-  var calc = new Calculation();
-  calc.setHoursWorked(200);
-  calc.setHoursPerWeek(42);
-  t.equal(calc.getHoursWorked(), 200);
-  t.equal(calc.getHoursPerWeek(), 42);
+  var hours = new Hours();
+  hours.setHoursWorked(200);
+  hours.setHoursPerWeek(42);
+  t.equal(hours.getHoursWorked(), 200);
+  t.equal(hours.getHoursPerWeek(), 42);
   t.end();
 });
 
 test('hours per day', function(t) {
-  var calc = new Calculation();
-  calc.setHoursPerWeek(42);
-  t.equal(calc.getHoursPerDay(), 8.4);
+  var hours = new Hours();
+  hours.setHoursPerWeek(42);
+  t.equal(hours.getHoursPerDay(), 8.4);
   t.end();
 });
 
 test('hours per day/default values', function (t) {
-  var calc = new Calculation();
-  t.equal(calc.getHoursPerDay(), 8);
+  var hours = new Hours();
+  t.equal(hours.getHoursPerDay(), 8);
   t.end();
 });
 
 test('days worked/default values', function (t) {
-  var calc = new Calculation();
-  t.equal(calc.getDaysWorked(), 0);
+  var hours = new Hours();
+  t.equal(hours.getDaysWorked(), 0);
   t.end();
 });
 
 test('days worked', function(t) {
-  var calc = new Calculation();
-  calc.setHoursWorked(204);
-  t.equal(calc.getDaysWorked(), 25.5);
+  var hours = new Hours();
+  hours.setHoursWorked(204);
+  t.equal(hours.getDaysWorked(), 25.5);
   t.end();
 });
 
 test('days worked non-default hours per day', function(t) {
-  var calc = new Calculation();
-  calc.setHoursPerWeek(45);
-  calc.setHoursWorked(180);
-  t.equal(calc.getDaysWorked(), 20);
+  var hours = new Hours();
+  hours.setHoursPerWeek(45);
+  hours.setHoursWorked(180);
+  t.equal(hours.getDaysWorked(), 20);
   t.end();
 });
 
 test('set regions as array', function(t) {
-  var calc = new Calculation();
-  calc.setRegions(['de', 'de_nw']);
-  t.equal(calc.getRegions().length, 2);
-  t.equal(calc.getRegions()[0], 'de');
-  t.equal(calc.getRegions()[1], 'de_nw');
+  var hours = new Hours();
+  hours.setRegions(['de', 'de_nw']);
+  t.equal(hours.getRegions().length, 2);
+  t.equal(hours.getRegions()[0], 'de');
+  t.equal(hours.getRegions()[1], 'de_nw');
   t.end();
 });
 
 test('set regions as varargs', function(t) {
-  var calc = new Calculation();
-  calc.setRegions('de', 'de_nw');
-  t.equal(calc.getRegions().length, 2);
-  t.equal(calc.getRegions()[0], 'de');
-  t.equal(calc.getRegions()[1], 'de_nw');
+  var hours = new Hours();
+  hours.setRegions('de', 'de_nw');
+  t.equal(hours.getRegions().length, 2);
+  t.equal(hours.getRegions()[0], 'de');
+  t.equal(hours.getRegions()[1], 'de_nw');
   t.end();
 });
 
 test('set one region', function(t) {
-  var calc = new Calculation();
-  calc.setRegions('de');
-  t.equal(calc.getRegions().length, 1);
-  t.equal(calc.getRegions()[0], 'de');
+  var hours = new Hours();
+  hours.setRegions('de');
+  t.equal(hours.getRegions().length, 1);
+  t.equal(hours.getRegions()[0], 'de');
   t.end();
 });
 
 test('set no region', function(t) {
-  var calc = new Calculation();
-  calc.setRegions();
-  t.equal(calc.getRegions().length, 0);
+  var hours = new Hours();
+  hours.setRegions();
+  t.equal(hours.getRegions().length, 0);
   t.end();
 });

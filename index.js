@@ -4,7 +4,7 @@ var moment = require('moment');
 var workwork = require('workwork');
 var util = require('util');
 
-function Calculation() {
+function Hours() {
   this.hoursPerWeek = 40;
   // Can't make this easily configurable because workwork and liberty both
   // assume Monday to Friday to be working days and Saturday and Sunday to be
@@ -13,40 +13,45 @@ function Calculation() {
   this.regions = null;
   this.vacationDaysTotal = 0;
   this.vacationDays = [];
-  // TODO this is in contrast to vacation days etc. for which we can
-  // calculate a number depending on the date.
+  this.sickDays = [];
+
+  // TODO setting hoursWorked as a simple number is in contrast to vacation days
+  // and sick days for which we add the actual, individual days and can
+  // calculate the number of vacation days/sick days depending on the date.
+  // To have the same for hours/days worked we would need to add the worked
+  // hours for each day individually. Maybe allow both?
   this.hoursWorked =  0;
 }
 
-Calculation.prototype.getHoursWorked = function() {
+Hours.prototype.getHoursWorked = function() {
   return this.hoursWorked;
 };
 
-Calculation.prototype.setHoursWorked = function(hoursWorked) {
+Hours.prototype.setHoursWorked = function(hoursWorked) {
   return this.hoursWorked = hoursWorked;
 };
 
-Calculation.prototype.getHoursPerWeek = function() {
+Hours.prototype.getHoursPerWeek = function() {
   return this.hoursPerWeek;
 };
 
-Calculation.prototype.setHoursPerWeek = function(hoursPerWeek) {
+Hours.prototype.setHoursPerWeek = function(hoursPerWeek) {
   this.hoursPerWeek = hoursPerWeek;
 };
 
-Calculation.prototype.getHoursPerDay = function() {
+Hours.prototype.getHoursPerDay = function() {
   return this.hoursPerWeek / this.daysPerWeek;
 };
 
-Calculation.prototype.getDaysWorked = function() {
+Hours.prototype.getDaysWorked = function() {
   return this.hoursWorked / this.getHoursPerDay();
 };
 
-Calculation.prototype.getRegions = function() {
+Hours.prototype.getRegions = function() {
   return this.regions;
 };
 
-Calculation.prototype.setRegions = function(regions) {
+Hours.prototype.setRegions = function(regions) {
   if (util.isArray(regions)) {
     this.regions = regions;
   } else {
@@ -54,7 +59,7 @@ Calculation.prototype.setRegions = function(regions) {
   }
 };
 
-Calculation.prototype.getWorkingDaysBetween = function(from, until) {
+Hours.prototype.getWorkingDaysBetween = function(from, until) {
   if (!this.regions) {
     throw new Error('This calculation requires that you set one or several ' +
         'regions with setRegions() before.');
@@ -62,20 +67,20 @@ Calculation.prototype.getWorkingDaysBetween = function(from, until) {
   return workwork(this.regions).between(from, until).length;
 };
 
-Calculation.prototype.getWorkingDaysUntil = function(until) {
+Hours.prototype.getWorkingDaysUntil = function(until) {
   var startOfYear = moment(until).startOf('year');
   return this.getWorkingDaysBetween(startOfYear, until);
 };
 
-Calculation.prototype.getWorkingHoursBetween = function(from, until) {
+Hours.prototype.getWorkingHoursBetween = function(from, until) {
   return this.getWorkingDaysBetween(from, until) * this.getHoursPerDay();
 };
 
-Calculation.prototype.getWorkingHoursUntil = function(until) {
+Hours.prototype.getWorkingHoursUntil = function(until) {
   return this.getWorkingDaysUntil(until) * this.getHoursPerDay();
 };
 
-Calculation.prototype.getWorkingHoursYearTotal = function(year) {
+Hours.prototype.getWorkingHoursYearTotal = function(year) {
   year = year || moment().year(); // default: current year
   var startOfYear = moment({ year: year }).startOf('year');
   var endOfYear = moment({ year: year }).endOf('year');
@@ -86,7 +91,7 @@ Calculation.prototype.getWorkingHoursYearTotal = function(year) {
  * working hours from start of year until given date divided by working hours in
  * the whole year (the year is always taken from the given date.
  */
-Calculation.prototype.getWorkingHoursFractionUntil = function(until) {
+Hours.prototype.getWorkingHoursFractionUntil = function(until) {
   var year = moment(until).year();
   return this.getWorkingHoursUntil(until) / this.getWorkingHoursYearTotal(year);
 };
@@ -95,29 +100,29 @@ Calculation.prototype.getWorkingHoursFractionUntil = function(until) {
  * working hours between the given dates  divided by working hours in the whole
  * year (the year is always taken from the given from date).
  */
-Calculation.prototype.getWorkingHoursFractionBetween = function(from, until) {
+Hours.prototype.getWorkingHoursFractionBetween = function(from, until) {
   var year = moment(from).year();
   return this.getWorkingHoursBetween(from, until) /
     this.getWorkingHoursYearTotal(year);
 };
 
-Calculation.prototype.getVacationDaysTotal = function() {
+Hours.prototype.getVacationDaysTotal = function() {
   return this.vacationDaysTotal;
 };
 
-Calculation.prototype.setVacationDaysTotal = function(vacationDaysTotal) {
+Hours.prototype.setVacationDaysTotal = function(vacationDaysTotal) {
   this.vacationDaysTotal = vacationDaysTotal;
 };
 
-Calculation.prototype.getVacationHoursTotal = function() {
+Hours.prototype.getVacationHoursTotal = function() {
   return this.vacationDaysTotal * this.getHoursPerDay();
 };
 
-Calculation.prototype.addVacationDay = function(date) {
+Hours.prototype.addVacationDay = function(date) {
   this.vacationDays.push(moment(date));
 };
 
-Calculation.prototype.getVacationDaysTaken = function(until) {
+Hours.prototype.getVacationDaysTaken = function(until) {
   until = moment(until);
   var startOfYear = moment(until).startOf('year');
   var days = 0;
@@ -132,11 +137,11 @@ Calculation.prototype.getVacationDaysTaken = function(until) {
   return days;
 };
 
-Calculation.prototype.getVacationHoursTaken = function(until) {
+Hours.prototype.getVacationHoursTaken = function(until) {
   return this.getVacationDaysTaken(until) * this.getHoursPerDay();
 };
 
-Calculation.prototype.getVacationDaysAvailable = function(from) {
+Hours.prototype.getVacationDaysAvailable = function(from) {
   if (!this.getVacationDaysTotal()) {
     throw new Error('This calculation requires that you set the vaction days ' +
         'total with setVacationDaysTotal() before.');
@@ -144,7 +149,7 @@ Calculation.prototype.getVacationDaysAvailable = function(from) {
   return this.getVacationDaysTotal() - this.getVacationDaysTaken(from);
 };
 
-Calculation.prototype.getVacationHoursAvailable = function(from) {
+Hours.prototype.getVacationHoursAvailable = function(from) {
   return this.getVacationDaysAvailable(from) * this.getHoursPerDay();
 };
 
@@ -152,7 +157,7 @@ Calculation.prototype.getVacationHoursAvailable = function(from) {
  * The number of vacation days from 01.01. until the given date if one would
  * evenly distribute vacations days across the year.
  */
-Calculation.prototype.getVacationDaysDistributedUntil = function(until) {
+Hours.prototype.getVacationDaysDistributedUntil = function(until) {
   if (!this.getVacationDaysTotal()) {
     throw new Error('This calculation requires that you set the vaction days ' +
         'total with setVacationDaysTotal() before.');
@@ -164,7 +169,7 @@ Calculation.prototype.getVacationDaysDistributedUntil = function(until) {
  * The number of vacation hours from 01.01. until the given date if one would
  * evenly distribute vacations across the year.
  */
-Calculation.prototype.getVacationHoursDistributedUntil = function(until) {
+Hours.prototype.getVacationHoursDistributedUntil = function(until) {
   return this.getVacationDaysDistributedUntil(until) * this.getHoursPerDay();
 };
 
@@ -172,7 +177,7 @@ Calculation.prototype.getVacationHoursDistributedUntil = function(until) {
  * The number of vacation days between the given dates if one would
  * evenly distribute vacations days across the year.
  */
-Calculation.prototype.getVacationDaysDistributedBetween =
+Hours.prototype.getVacationDaysDistributedBetween =
 function(from, until) {
   if (!this.getVacationDaysTotal()) {
     throw new Error('This calculation requires that you set the vaction days ' +
@@ -186,7 +191,7 @@ function(from, until) {
  * The number of vacation hours between the given dates if one would
  * evenly distribute vacations across the year.
  */
-Calculation.prototype.getVacationHoursDistributedBetween =
+Hours.prototype.getVacationHoursDistributedBetween =
 function(from, until) {
   return this.getVacationDaysDistributedBetween(from, until) *
     this.getHoursPerDay();
@@ -205,7 +210,7 @@ function(from, until) {
  *
  * See getVacationDebtDays for an example.
  */
-Calculation.prototype.getVacationDebtHours = function(until) {
+Hours.prototype.getVacationDebtHours = function(until) {
   return this.getVacationHoursDistributedUntil(until) -
     this.getVacationHoursTaken(until);
 };
@@ -235,7 +240,7 @@ Calculation.prototype.getVacationDebtHours = function(until) {
  * the end of the year, so this has actually a positive effect on the projected
  * number of days worked by the end of the year (see below).
 */
-Calculation.prototype.getVacationDebtDays = function(until) {
+Hours.prototype.getVacationDebtDays = function(until) {
   return this.getVacationDebtHours(until) / this.getHoursPerDay();
 };
 
@@ -262,7 +267,7 @@ Calculation.prototype.getVacationDebtDays = function(until) {
  * account. If the employee has been sick on any given day before the given
  * date, the hours from this day will be simply missing from the calculation.
  */
-Calculation.prototype.getProjectedHours = function(date) {
+Hours.prototype.getProjectedHours = function(date) {
   var nextDay = moment(date).add(1, 'day');
   var endOfYear = moment(date).endOf('year');
   return this.getHoursWorked() +
@@ -270,7 +275,7 @@ Calculation.prototype.getProjectedHours = function(date) {
          this.getVacationHoursAvailable(date);
 };
 
-Calculation.prototype.getProjectedDays = function(date) {
+Hours.prototype.getProjectedDays = function(date) {
   return this.getProjectedHours(date) / this.getHoursPerDay();
 };
 
@@ -278,17 +283,17 @@ Calculation.prototype.getProjectedDays = function(date) {
  * The number of hours an employee is ought to work in the given year, based on
  * the total working hours in this year minus vacation.
  */
-Calculation.prototype.getTargetHours = function(year) {
+Hours.prototype.getTargetHours = function(year) {
   return this.getWorkingHoursYearTotal(year) - this.getVacationHoursTotal();
 };
 
-Calculation.prototype.getProjectedOvertimeHours = function(date) {
+Hours.prototype.getProjectedOvertimeHours = function(date) {
   return this.getProjectedHours(date) -
     this.getTargetHours(moment(date).year());
 };
 
-Calculation.prototype.getProjectedOvertimeDays = function(date) {
+Hours.prototype.getProjectedOvertimeDays = function(date) {
   return this.getProjectedOvertimeHours(date) / this.getHoursPerDay();
 };
 
-module.exports = Calculation;
+module.exports = Hours;
