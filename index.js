@@ -4,6 +4,22 @@ var moment = require('moment');
 var workwork = require('workwork');
 var util = require('util');
 
+/**
+ * Creates a new calculation object.
+ *
+ * Monday to Friday are assumed to be working days and Saturday and Sunday are
+ * assumed to be non-working days. Note that his currently can not be configured
+ * as some libraries that Hours depends on for calculation of public holidays do
+ * not allow this to be configured.
+ *
+ * Working hours per week default to 40, thus working hours per day thus default to 5.
+ *
+ * Total vacation days per year are initialized to 0.
+ * Estimated sick days per year are initialized to 0.
+ *
+ * The region(s) required to calculate public holidays (and thus, working days)
+ * are not initialized.
+ */
 function Hours() {
   this.hoursPerWeek = 40;
   // Can't make this easily configurable because workwork and liberty both
@@ -13,6 +29,7 @@ function Hours() {
   this.regions = null;
   this.vacationDaysTotal = 0;
   this.vacationDays = [];
+  this.estimatedSickDaysTotal = 0;
   this.sickDays = [];
 
   // TODO setting hoursWorked as a simple number is in contrast to vacation days
@@ -23,34 +40,70 @@ function Hours() {
   this.hoursWorked =  0;
 }
 
-Hours.prototype.getHoursWorked = function() {
-  return this.hoursWorked;
-};
-
-Hours.prototype.setHoursWorked = function(hoursWorked) {
-  return this.hoursWorked = hoursWorked;
-};
-
+/**
+ * Returns the hours the employee is ought to work per week.
+ */
 Hours.prototype.getHoursPerWeek = function() {
   return this.hoursPerWeek;
 };
 
+/**
+ * Sets the hours the employee is ought to work per week and implicitly the
+ * number of hours the employee is ought to work per day (hoursPerWeek / 5).
+ */
 Hours.prototype.setHoursPerWeek = function(hoursPerWeek) {
   this.hoursPerWeek = hoursPerWeek;
 };
 
+/**
+ * Returns the hours the employee is ought to work per day, which is implicitly
+ * given by the number of hours per week divided by 5.
+ */
 Hours.prototype.getHoursPerDay = function() {
   return this.hoursPerWeek / this.daysPerWeek;
 };
 
+/**
+ * Returns the hours the employee has already worked this year.
+ */
+Hours.prototype.getHoursWorked = function() {
+  return this.hoursWorked;
+};
+
+/**
+ * Sets the hours the employee has already worked this year.
+ */
+Hours.prototype.setHoursWorked = function(hoursWorked) {
+  return this.hoursWorked = hoursWorked;
+};
+
+/**
+ * Returns the days the employee has already worked this year.
+ */
 Hours.prototype.getDaysWorked = function() {
   return this.hoursWorked / this.getHoursPerDay();
 };
 
+
+/**
+ * Returns the regions used to calculate public holidays and working days..
+ */
 Hours.prototype.getRegions = function() {
   return this.regions;
 };
 
+/**
+ * Sets the regions used to calculate public holidays and working days. Use
+ * region strings that are understood by wombleton/workwork and
+ * wombleton/liberty. If your region(s) is not supported by those libraries,
+ * consider adding rules for your region to wombleton/liberty via pull request.
+ *
+ * Note that in often you need to pass in two regions, the country's region (for
+ * the national holidays) and the subregion (for regional holidays that are not
+ * valid for the entire country). For example, if you live in the federal state
+ * of NRW (region 'de_nw') in Germany (region 'de'), you need to pass in ['de',
+ * 'de_nw').
+ */
 Hours.prototype.setRegions = function(regions) {
   if (util.isArray(regions)) {
     this.regions = regions;
@@ -59,6 +112,11 @@ Hours.prototype.setRegions = function(regions) {
   }
 };
 
+/**
+ * Calculates the working days between two dates, including both dates.
+ *
+ * You need to set regions via setRegions before calling this method.
+ */
 Hours.prototype.getWorkingDaysBetween = function(from, until) {
   if (!this.regions) {
     throw new Error('This calculation requires that you set one or several ' +
@@ -67,19 +125,58 @@ Hours.prototype.getWorkingDaysBetween = function(from, until) {
   return workwork(this.regions).between(from, until).length;
 };
 
+/**
+ * Calculates the working hours between two dates, including both dates.
+ *
+ * You need to set regions via setRegions before calling this method.
+ */
+Hours.prototype.getWorkingHoursBetween = function(from, until) {
+  return this.getWorkingDaysBetween(from, until) * this.getHoursPerDay();
+};
+
+/**
+ * Calculates the working days from the start of the year until the given date,
+ * including it.
+ *
+ * You need to set regions via setRegions before calling this method.
+ */
 Hours.prototype.getWorkingDaysUntil = function(until) {
   var startOfYear = moment(until).startOf('year');
   return this.getWorkingDaysBetween(startOfYear, until);
 };
 
-Hours.prototype.getWorkingHoursBetween = function(from, until) {
-  return this.getWorkingDaysBetween(from, until) * this.getHoursPerDay();
-};
-
+/**
+ * Calculates the working hours from the start of the year until the given date,
+ * including it.
+ *
+ * You need to set regions via setRegions before calling this method.
+ */
 Hours.prototype.getWorkingHoursUntil = function(until) {
   return this.getWorkingDaysUntil(until) * this.getHoursPerDay();
 };
 
+/**
+ * Calculates the total working days for the given year. Vacation days or sick
+ * days are not subtracted, so this just counts the number of days that are
+ * weekdays (not on a weekend) and not public holidays.
+ *
+ * You need to set regions via setRegions before calling this method.
+ */
+Hours.prototype.getWorkingDaysYearTotal = function(year) {
+  year = year || moment().year(); // default: current year
+  var startOfYear = moment({ year: year }).startOf('year');
+  var endOfYear = moment({ year: year }).endOf('year');
+  return this.getWorkingDaysBetween(startOfYear, endOfYear);
+};
+
+/**
+ * Calculates the total working hours for the given year. Vacation days or sick
+ * days are not subtracted, so this just counts the number of days that are
+ * weekdays (not on a weekend) and not public holidays and multiplies them with
+ * the hours per day.
+ *
+ * You need to set regions via setRegions before calling this method.
+ */
 Hours.prototype.getWorkingHoursYearTotal = function(year) {
   year = year || moment().year(); // default: current year
   var startOfYear = moment({ year: year }).startOf('year');
@@ -88,8 +185,9 @@ Hours.prototype.getWorkingHoursYearTotal = function(year) {
 };
 
 /*
- * working hours from start of year until given date divided by working hours in
- * the whole year (the year is always taken from the given date.
+ * Calculates the working hours from start of year until given date divided by
+ * working hours in the whole year (the year is always taken from the given
+ * date).
  */
 Hours.prototype.getWorkingHoursFractionUntil = function(until) {
   var year = moment(until).year();
@@ -97,8 +195,8 @@ Hours.prototype.getWorkingHoursFractionUntil = function(until) {
 };
 
 /*
- * working hours between the given dates  divided by working hours in the whole
- * year (the year is always taken from the given from date).
+ * Calculates the working hours between the given dates divided by working hours
+ * in the whole year (the year is always taken from the given from date).
  */
 Hours.prototype.getWorkingHoursFractionBetween = function(from, until) {
   var year = moment(from).year();
@@ -110,18 +208,38 @@ Hours.prototype.getVacationDaysTotal = function() {
   return this.vacationDaysTotal;
 };
 
+/**
+ * Sets the number of days the employee can use for vacation per year.
+ */
 Hours.prototype.setVacationDaysTotal = function(vacationDaysTotal) {
   this.vacationDaysTotal = vacationDaysTotal;
 };
 
+/**
+ * Gets the number of days the employee can use for vacation per year.
+ */
 Hours.prototype.getVacationHoursTotal = function() {
   return this.vacationDaysTotal * this.getHoursPerDay();
 };
 
+/**
+ * Marks the given day as on which the employee did not work but had vacation
+ * (will not work but will have vacation in case the date is in the future).
+ *
+ * Use anything that Moment.js accepts as the date (this includes moment
+ * objects).
+ */
 Hours.prototype.addVacationDay = function(date) {
   this.vacationDays.push(moment(date));
 };
 
+/**
+ * Counts the number of days marked as vacation days until (including) the given
+ * date.
+ *
+ * Use anything that Moment.js accepts as the date (this includes moment
+ * objects).
+ */
 Hours.prototype.getVacationDaysTaken = function(until) {
   until = moment(until);
   var startOfYear = moment(until).startOf('year');
@@ -137,10 +255,24 @@ Hours.prototype.getVacationDaysTaken = function(until) {
   return days;
 };
 
+/**
+ * Counts the number of hours marked as vacation until (including) the given
+ * date.
+ *
+ * Use anything that Moment.js accepts as the date (this includes moment
+ * objects).
+ */
 Hours.prototype.getVacationHoursTaken = function(until) {
   return this.getVacationDaysTaken(until) * this.getHoursPerDay();
 };
 
+/**
+ * Calculates the number of days the employee has still left on the given date,
+ * that is, total vacation days minus vacation days taken.
+ *
+ * Use anything that Moment.js accepts as the date (this includes moment
+ * objects).
+ */
 Hours.prototype.getVacationDaysAvailable = function(from) {
   if (!this.getVacationDaysTotal()) {
     throw new Error('This calculation requires that you set the vaction days ' +
@@ -149,6 +281,13 @@ Hours.prototype.getVacationDaysAvailable = function(from) {
   return this.getVacationDaysTotal() - this.getVacationDaysTaken(from);
 };
 
+/**
+ * Calculates the number of hours the employee has still left on the given date,
+ * that is, total vacation hours minus vacation hours taken.
+ *
+ * Use anything that Moment.js accepts as the date (this includes moment
+ * objects).
+ */
 Hours.prototype.getVacationHoursAvailable = function(from) {
   return this.getVacationDaysAvailable(from) * this.getHoursPerDay();
 };
@@ -275,6 +414,9 @@ Hours.prototype.getProjectedHours = function(date) {
          this.getVacationHoursAvailable(date);
 };
 
+/**
+ * Same as getProjectedHours(), but in days.
+ */
 Hours.prototype.getProjectedDays = function(date) {
   return this.getProjectedHours(date) / this.getHoursPerDay();
 };
@@ -287,11 +429,18 @@ Hours.prototype.getTargetHours = function(year) {
   return this.getWorkingHoursYearTotal(year) - this.getVacationHoursTotal();
 };
 
+/**
+ * Calculates the overtime (in hours) using the same input and making the same
+ * assumptions as getProjectedHours.
+ */
 Hours.prototype.getProjectedOvertimeHours = function(date) {
   return this.getProjectedHours(date) -
     this.getTargetHours(moment(date).year());
 };
 
+/**
+ * Same as getProjectedOvertimeHours(), but in days.
+ */
 Hours.prototype.getProjectedOvertimeDays = function(date) {
   return this.getProjectedOvertimeHours(date) / this.getHoursPerDay();
 };
