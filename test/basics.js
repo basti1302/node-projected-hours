@@ -21,13 +21,6 @@ test('non default values', function (t) {
   t.end();
 });
 
-test('configure by constructor', function (t) {
-  var calc = new Calculation(42, 34);
-  t.equal(calc.getHoursWorked(), 42);
-  t.equal(calc.getHoursPerWeek(), 34);
-  t.end();
-});
-
 test('hours per day', function(t) {
   var calc = new Calculation();
   calc.setHoursPerWeek(42);

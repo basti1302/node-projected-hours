@@ -55,7 +55,7 @@ vacationDebt(date) =  vacationDistributed(date) - vacationTaken
 Example: vacationTotal = 30, vacationTaken = 20
   vacationDebt(01.07.)
   = vacationDistributed(01.07.) - 20
-  = 15 - 5
+  = 15 - 20
   = (-5)
 
 In this example, the employee is 5 vacation days in debt, which has actually a positive effect on the projected number of days/hours worked by the end of the year (see below) because they won't take as much vacation until the end of the year.
