@@ -223,8 +223,9 @@ Hours.prototype.getVacationHoursTotal = function() {
 };
 
 /**
- * Marks the given day as on which the employee did not work but had vacation
- * (will not work but will have vacation in case the date is in the future).
+ * Marks the given day as one on which the employee did not work but had
+ * vacation (will not work but will have vacation in case the date is in the
+ * future).
  *
  * Use anything that Moment.js accepts as the date (this includes moment
  * objects).
@@ -246,6 +247,7 @@ Hours.prototype.getVacationDaysTaken = function(until) {
   var days = 0;
   for (var i = 0; i < this.vacationDays.length; i++) {
     var day = this.vacationDays[i];
+    // check if days is in the correct year
     if (day.isSame(startOfYear, 'days') ||
         day.isBetween(startOfYear, until, 'days') ||
         day.isSame(until, 'days')) {
@@ -384,6 +386,103 @@ Hours.prototype.getVacationDebtDays = function(until) {
 };
 
 /**
+ * Sets the estimated number of days per year an employee takes a sick leave.
+ */
+Hours.prototype.setEstimatedSickDaysTotal = function(days) {
+  this.estimatedSickDaysTotal = days;
+};
+
+/**
+ * Gets the estimated number of days per year an employee takes a sick leave.
+ */
+Hours.prototype.getEstimatedSickDaysTotal = function() {
+  return this.estimatedSickDaysTotal;
+};
+
+/**
+ * Gets the estimated number of hours per year an employee takes a sick leave.
+ */
+Hours.prototype.getEstimatedSickHoursTotal = function() {
+  return this.getEstimatedSickDaysTotal() * this.getHoursPerDay();
+};
+
+/**
+ * Marks the given day as one on which the employee did not work due to being
+ * sick.
+ *
+ * Use anything that Moment.js accepts as the date (this includes moment
+ * objects).
+ */
+Hours.prototype.addSickDay = function(date) {
+  this.sickDays.push(moment(date));
+};
+
+/**
+ * Counts the number of days marked as sick days until (including) the given
+ * date.
+ *
+ * Use anything that Moment.js accepts as the date (this includes moment
+ * objects).
+ */
+Hours.prototype.getSickDays = function(until) {
+  until = moment(until);
+  var startOfYear = moment(until).startOf('year');
+  var days = 0;
+  for (var i = 0; i < this.sickDays.length; i++) {
+    var day = this.sickDays[i];
+    // check if days is in the correct year
+    if (day.isSame(startOfYear, 'days') ||
+        day.isBetween(startOfYear, until, 'days') ||
+        day.isSame(until, 'days')) {
+      days++;
+    }
+  }
+  return days;
+};
+
+/**
+ * Counts the number of hours marked as sick days until (including) the given
+ * date.
+ *
+ * Use anything that Moment.js accepts as the date (this includes moment
+ * objects).
+ */
+Hours.prototype.getSickHours = function(until) {
+  return this.getSickDays(until) * this.getHoursPerDay();
+};
+
+/**
+ * Calculates the estimated number of sick days the employee has still left on the
+ * given date, that is, the estimated total sick days per year minus the actual
+ * sick days that happened until the given date. If the employee already had
+ * more sick days than estimated, this method returns 0.
+ *
+ * Use anything that Moment.js accepts as the date (this includes moment
+ * objects).
+ */
+Hours.prototype.getEstimatedSickDaysLeft = function(from) {
+  if (!this.getEstimatedSickDaysTotal()) {
+    throw new Error('This calculation requires that you set the vaction days ' +
+        'total with setVacationDaysTotal() before.');
+  }
+  var estimate = this.getEstimatedSickDaysTotal() - this.getSickDays(from);
+  return estimate > 0 ? estimate : 0;
+};
+
+/**
+ * Calculates the estimated number of sick hours the employee has still left on
+ * the given date, that is, the estimated total sick hours per year minus the
+ * actualsick days that happened until the given date. If the employee already
+ * had more sick hours than estimated, this method returns 0.
+ *
+ * Use anything that Moment.js accepts as the date (this includes moment
+ * objects).
+ */
+Hours.prototype.getEstimatedSickHoursLeft = function(from) {
+  return this.getEstimatedSickDaysLeft(from) * this.getHoursPerDay();
+};
+
+/**
  * Calculates the number of hours the employee will have worked at the end of
  * year, based on the following data:
  * - The number of hours the employee has worked until the given date (including
@@ -401,10 +500,6 @@ Hours.prototype.getVacationDebtDays = function(until) {
  *   required hours, not more, not less. The required hours per day can be set
  *   implicitly by `setHoursPerWeek`. This defaults to 40, so hours per day
  *   default to 8.
- *
- * TODO: In particular, this calculation does not yet take sick days into
- * account. If the employee has been sick on any given day before the given
- * date, the hours from this day will be simply missing from the calculation.
  */
 Hours.prototype.getProjectedHours = function(date) {
   var nextDay = moment(date).add(1, 'day');
@@ -430,12 +525,14 @@ Hours.prototype.getTargetHours = function(year) {
 };
 
 /**
- * Calculates the overtime (in hours) using the same input and making the same
- * assumptions as getProjectedHours.
+ * Calculates the overtime (in hours) basically using the same input and making
+ * the same assumptions as getProjectedHours. The only difference is that sick
+ * days count as if the employee had worked the required hours per day.
  */
 Hours.prototype.getProjectedOvertimeHours = function(date) {
   return this.getProjectedHours(date) -
-    this.getTargetHours(moment(date).year());
+    this.getTargetHours(moment(date).year()) +
+    this.getSickHours(date);
 };
 
 /**
