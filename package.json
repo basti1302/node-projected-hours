@@ -1,6 +1,6 @@
 {
   "name": "projected-hours",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Calculate/estimate the projected hours/days worked, projected overtime, and similiar numbers.",
   "main": "index.js",
   "scripts": {
